@@ -66,6 +66,7 @@ window.onload = function(){
 		var none_proc = function(){
 			var cvs = document.querySelector('canvas');
 			var ctx = cvs.getContext('2d');
+			ctx.clearRect(0,0,cvs.width,cvs.height)
 			ctx.drawImage(image,0,0,cvs.width,cvs.height);
 		}
 		var mosaic = function(w,h){
@@ -127,8 +128,8 @@ window.onload = function(){
 						}
 					}
 					valr = valr/k|0;valr = (valr>0)?valr:-valr;
-					valg = valg/k|0;valg = (valr>0)?valg:-valg;
-					valb = valb/k|0;valb = (valr>0)?valb:-valb;
+					valg = valg/k|0;valg = (valg>0)?valg:-valg;
+					valb = valb/k|0;valb = (valb>0)?valb:-valb;
 					outputData[(i * cvs.width + j) * 4 + 0] = valr;
 					outputData[(i * cvs.width + j) * 4 + 1] = valg;
 					outputData[(i * cvs.width + j) * 4 + 2] = valb;
