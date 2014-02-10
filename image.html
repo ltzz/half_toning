@@ -15,10 +15,32 @@ function imload(){
 			var _src = evt.target.result;
 			var cvs = document.querySelector('canvas');
 			var ctx = cvs.getContext('2d');
-			ctx.clearRect(0,0,400,300);
+			ctx.clearRect(0,0,cvs.width,cvs.height);
 			image = new Image();
 			image.src = _src;
 			image.addEventListener('load',function(){
+				switch(document.getElementById("imsize").selectedIndex){
+					case 0:
+						cvs.width = 400;
+						cvs.height = 300;
+					break;
+					case 1:
+						cvs.width = 400;
+						cvs.height = 400*image.height/image.width;
+					break;
+					case 2:
+						cvs.width = image.width/4;
+						cvs.height = image.height/4;
+					break;
+					case 3:
+						cvs.width = image.width/2;
+						cvs.height = image.height/2;
+					break;
+					case 4:
+						cvs.width = image.width;
+						cvs.height = image.height;
+					break;
+				}
 				ctx.drawImage(image,0,0,cvs.width,cvs.height);
 			},false);
 		}, false);
@@ -35,16 +57,53 @@ window.onload = function(){
 	document.getElementById("files").addEventListener('change', handler, false);
 	document.getElementById("load_button").addEventListener('mousedown', imload, false);
 	document.getElementById("apply_button").addEventListener('mousedown',function(){
-	var laplacian = [2,0,2,
-					0,-8,0,
-					2,0,2];
-	var gaussian = [1,2,1,
-					2,4,2,
-					1,2,1];
+		var laplacian = [2,0,2,
+						0,-8,0,
+						2,0,2];
+		var gaussian = [1,2,1,
+						2,4,2,
+						1,2,1];
 		var none_proc = function(){
 			var cvs = document.querySelector('canvas');
 			var ctx = cvs.getContext('2d');
 			ctx.drawImage(image,0,0,cvs.width,cvs.height);
+		}
+		var mosaic = function(w,h){
+			var cvs = document.querySelector('canvas');
+			var ctx = cvs.getContext('2d');
+			var inputData = ctx.getImageData(0, 0, cvs.width, cvs.height).data;
+			
+			var output = ctx.createImageData(cvs.width, cvs.height);
+			var outputData = output.data;
+			
+			for(var i = 0; i < cvs.height; i += h ){
+				for(var j = 0; j < cvs.width; j += w ){
+					var valr = 0;
+					var valg = 0;
+					var valb = 0;
+					var cnt = 0;
+					for(var dy = 0; dy < h; ++dy){
+						for(var dx = 0; dx < w; ++dx){
+							++cnt;
+							valr += inputData[ ((i + dy) * cvs.width + (j + dx)) * 4 + 0 ];
+							valg += inputData[ ((i + dy) * cvs.width + (j + dx)) * 4 + 1 ];
+							valb += inputData[ ((i + dy) * cvs.width + (j + dx)) * 4 + 2 ];
+						}
+					}
+					valr = valr/cnt|0;
+					valg = valg/cnt|0;
+					valb = valb/cnt|0;
+					for(var dy = 0; dy < h; ++dy){
+						for(var dx = 0; dx < w; ++dx){
+							outputData[((i + dy) * cvs.width + j + dx) * 4 + 0] = valr;
+							outputData[((i + dy) * cvs.width + j + dx) * 4 + 1] = valg;
+							outputData[((i + dy) * cvs.width + j + dx) * 4 + 2] = valb;
+							outputData[((i + dy) * cvs.width + j + dx) * 4 + 3] = 0xff;
+						}
+					}
+				}
+			}
+			ctx.putImageData(output,0,0);
 		}
 		var applyMatrix = function(arr,k){
 			if(!k) k=1;
@@ -136,7 +195,7 @@ window.onload = function(){
 							var g = inputData[((i + dy) * cvs.width + (j + dx)) * 4 + 1];
 							var b = inputData[((i + dy) * cvs.width + (j + dx)) * 4 + 2];
 							var gray = (r+g+b)/3|0;
-								outputData[((i + dy) * cvs.width + (j + dx)) * 4 + 0] = gray;
+							outputData[((i + dy) * cvs.width + (j + dx)) * 4 + 0] = gray;
 							outputData[((i + dy) * cvs.width + (j + dx)) * 4 + 1] = gray;
 							outputData[((i + dy) * cvs.width + (j + dx)) * 4 + 2] = gray;
 							outputData[((i + dy) * cvs.width + (j + dx)) * 4 + 3] = 0xff;
@@ -146,7 +205,7 @@ window.onload = function(){
 			}
 			ctx.putImageData(output,0,0);
 		}
-		switch(document.querySelector("select").selectedIndex){
+		switch(document.getElementById("process").selectedIndex){
 			case 0:
 				none_proc();
 				break;
@@ -164,6 +223,10 @@ window.onload = function(){
 				none_proc();
 				applyMatrix(gaussian,16);
 				break;
+			case 5:
+				none_proc();
+				mosaic(10,10);
+				break;
 		}
 	},false);
 }
@@ -172,16 +235,24 @@ window.onload = function(){
 <body>
 <div>
 <input type="button" value="load" id="load_button">
+<select id="imsize">
+<option>400 x 300</option>
+<option>400 x auto</option>
+<option>25%</option>
+<option>50%</option>
+<option>100%</option>
+</select>
 <input type="file" id="files">
 <output id="file_detail"></output>
 </div>
-<canvas width="400" height="300"></canvas><br>
-<select>
+<canvas></canvas><br>
+<select id="process">
 <option>None</option>
 <option>Grayscale</option>
 <option>Dither</option>
 <option>Laplacian</option>
 <option>Gaussian</option>
+<option>Mosaic</option>
 </select>
 <input type="button" value="Apply" id="apply_button">
 </body>
